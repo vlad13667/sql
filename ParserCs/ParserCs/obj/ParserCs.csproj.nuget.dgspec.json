@@ -1,0 +1,85 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\vlad\\Desktop\\teamwork-sharks-SQL-Parser-site\\teamwork-sharks-parser-site\\ParserCs\\ParserCs\\ParserCs.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\vlad\\Desktop\\teamwork-sharks-SQL-Parser-site\\teamwork-sharks-parser-site\\ParserCs\\ParserCs\\ParserCs.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\vlad\\Desktop\\teamwork-sharks-SQL-Parser-site\\teamwork-sharks-parser-site\\ParserCs\\ParserCs\\ParserCs.csproj",
+        "projectName": "ParserCs",
+        "projectPath": "C:\\Users\\vlad\\Desktop\\teamwork-sharks-SQL-Parser-site\\teamwork-sharks-parser-site\\ParserCs\\ParserCs\\ParserCs.csproj",
+        "packagesPath": "C:\\Users\\vlad\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\vlad\\Desktop\\teamwork-sharks-SQL-Parser-site\\teamwork-sharks-parser-site\\ParserCs\\ParserCs\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\vlad\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Aspose.Words": {
+              "target": "Package",
+              "version": "[23.6.0, )"
+            },
+            "DocumentFormat.OpenXml.VariableReplacer": {
+              "target": "Package",
+              "version": "[0.1.0, )"
+            },
+            "HtmlAgilityPack": {
+              "target": "Package",
+              "version": "[1.11.46, )"
+            },
+            "Npgsql": {
+              "target": "Package",
+              "version": "[7.0.4, )"
+            },
+            "OpenXmlPowerTools": {
+              "target": "Package",
+              "version": "[4.5.3.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.302\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

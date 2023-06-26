@@ -240,11 +240,11 @@ public class Program
             if (words.Length == 1)
             {
                 a = "";
-                if(age == "")
+                if (age == "")
                 {
                     age = "0";
                 }
-                age = age.Trim(new char[] { 'г', 'о', 'д', ' ','л','е','т','а' }); // результат "ello worl"
+                age = age.Trim(new char[] { 'г', 'о', 'д', ' ', 'л', 'е', 'т', 'а' }); // результат "ello worl"
                 int vozr = int.Parse(age);
                 birthday = birthday.Replace(" ", "");
                 id_pers_inf = personal_information_poisk(a, a, a, vozr, sex, mail, phoneNumber, birthday, citizenship, city, con);
@@ -256,7 +256,7 @@ public class Program
             }
             else
             {
-                age = age.Trim(new char[] { 'г', 'о', 'д', ' ', 'л', 'е', 'т','а' }); // результат "ello worl"
+                age = age.Trim(new char[] { 'г', 'о', 'д', ' ', 'л', 'е', 'т', 'а' }); // результат "ello worl"
                 int vozr = int.Parse(age);
                 birthday = birthday.Replace(" ", "");
                 id_pers_inf = personal_information_poisk(words[0], words[1], a, vozr, sex, mail, phoneNumber, birthday, citizenship, city, con);
@@ -416,7 +416,7 @@ public class Program
             {
                 salary = "0";
             }
-          
+
             id_res = resume_poisk(urlResume, workExpTime, aboutMe, int.Parse(salary), con);
             if (id_res == 0)
             {
@@ -615,6 +615,526 @@ public class Program
 
             }
         }
+    }
+
+    static void ParseAfterDoc(string htmlName)
+    {
+        int id_pers_inf = 1;// id в бд персональной информации
+        int id_edu = 1;// id для связи с бд образование
+        int id_skil = 1;// id для связи бд  навыки  
+        int id_job = 1;//  id для связи c бд должности прошлой работы
+        int id_emp = 1;// id ля связи с бд занятость 
+        int id_res = 1;//id для связи с бд резюме
+        int id_sch = 1;
+        int id_lw = 1;
+        var cs = "Host=localhost;Port=5433;Username=postgres;Password=369147258mM;Database=postgres";
+        using var con = new NpgsqlConnection(cs);
+        con.Open();
+
+        Console.WriteLine("=====================================Парсинг резюме ....\n");
+
+        string personalName = "";//имя
+        string sex = ""; //пол
+        string age = "";
+        string birthday = "";
+        string phoneNumber = ""; //телефонный номер
+        string mail = ""; //почта
+        string city = "";
+        //ГОТОВНОСТЬ К ПЕРЕЕЗДУ
+
+        string position = ""; //позиция
+        List<string> specs = new List<string>(); //специализации
+        string busyness = "";//ЗАНЯТОСТЬ
+        string workSchedule = "";//ГРАФИК РАБОТЫ
+        string salary = "зарплата не указана";
+
+        string workExpTime = "";// опыт работы по времени
+        List<Job> jobs = new List<Job>();// работы
+
+        List<string> skills = new List<string>(); //ключевые навыки
+
+        string driverExp = ""; //опыт вождения (категории)
+
+        string aboutMe = "";
+
+        List<Education> educations = new List<Education>();
+
+        List<string> languages = new List<string>(); //ключевые навыки
+
+        List<Qualification> qualifications = new List<Qualification>();
+
+        string citizenship = "";
+
+        List<ElemsAfterDoc> elems = new List<ElemsAfterDoc>();
+
+        HtmlDocument docResume = new HtmlDocument();
+        docResume.Load("../../../" + htmlName + ".html");
+
+        var allp = docResume.DocumentNode.SelectNodes("//table[@cellspacing='0']//p");
+
+        if (allp != null)
+            for (int i = 0; i < allp.Count; i++)
+            {
+                var p = allp[i];
+                bool header = false;
+                string text = p.InnerText.Replace("&#xa0;", " ").Trim();
+                var styleP = p.GetAttributeValue("style", "");
+                var span = p.SelectSingleNode(".//span");
+                var styleSpan = span.GetAttributeValue("style", "");
+                if (styleSpan == "font-family:Arial; font-size:9pt; background-color:#e6e6e6")
+                {
+                    text = "";
+                    var spans = p.SelectNodes(".//span");
+                    for (int j = 0; j < spans.Count; j++)
+                    {
+                        var sp = spans[j];
+
+                        text += sp.InnerText.Replace("&#xa0;", " ").Trim() == "" ? " " : sp.InnerText.Replace("&#xa0;", " ").Trim();
+
+
+                        styleSpan = sp.GetAttributeValue("style", "");
+
+                        if (styleSpan == "font-family:Arial; font-size:9pt; -aw-import:spaces")
+                        {
+                            elems.Add(new ElemsAfterDoc(text, "margin-top:12.5pt; margin-bottom:0pt; line-height:13pt; widows:0; orphans:0", "font-family:Arial; font-size:9pt; background-color:#e6e6e6", header));
+                            text = "";
+                        }
+                    }
+                    elems.Add(new ElemsAfterDoc(text, "margin-top:12.5pt; margin-bottom:0pt; line-height:13pt; widows:0; orphans:0", "font-family:Arial; font-size:9pt; background-color:#e6e6e6", header));//последний добавляем
+
+                    continue;
+                }
+                if (styleSpan == "font-family:Arial; font-size:8pt; color:#707070")
+                {
+                    var spans = p.SelectNodes(".//span");
+                    text = spans[0].InnerText;
+                    elems.Add(new ElemsAfterDoc(text, "margin-top:12.5pt; margin-bottom:0pt; line-height:11pt; widows:0; orphans:0", "font-family:Arial; font-size:8pt; color:#707070", header));//последний добавляем
+                    continue;
+                }
+                if (styleSpan == "font-family:Arial; font-weight:bold" && styleP == "margin-top:0pt; margin-bottom:0pt; text-align:right; widows:0; orphans:0; font-size:16pt")
+                {
+                    var spans = p.SelectNodes(".//span");
+                    int n;
+                    string money = "";
+                    foreach (var sp in spans)
+                    {
+                        bool isNumeric = int.TryParse(sp.InnerText, out n);
+                        if (isNumeric)
+                        {
+                            money += sp.InnerText;
+                        }
+                        else if (sp.InnerText != "&#xa0;")
+                        {
+                            money += " " + sp.InnerText;
+                        }
+
+                    }
+                    salary = money;
+                    elems.Add(new ElemsAfterDoc(money, "", "", false));
+                    //ТУТ КОСТЫЛЬ. я сразу сохраняю в пременную.
+                    continue;
+                }
+                if (text != "")
+                {
+                    if (styleP == "margin-top:25pt; margin-bottom:7.5pt; widows:0; orphans:0; border-bottom:0.75pt solid #d8d8d8; font-size:11pt; -aw-border-bottom:0pt single" &&
+                        styleSpan == "font-family:Arial; color:#aeaeae")
+                    {
+                        header = true;
+                        if (text.Contains("Опыт работы"))
+                        {
+                            text = "Опыт работы";
+                        }
+                    }
+                    elems.Add(new ElemsAfterDoc(text, styleP, styleSpan, header));
+                }
+            }
+        else { Console.WriteLine("не так что-то сделал"); }
+
+        /*for (int i = 0; i < elems.Count; i++)//ВЫВОД ВСЕГО
+        {
+            Console.WriteLine(elems[i].GetInfo(false) + "\n");
+        }*/
+
+        int kkk = 0;
+        Console.WriteLine("КОНТАКТНАЯ ИНФОРМАЦИЯ");
+        while (!elems[kkk].header)
+        {
+            if (elems[kkk].styleP == "margin-top:0pt; margin-bottom:0pt; widows:0; orphans:0; font-size:25pt")
+            {
+                personalName = elems[kkk].text;
+                Console.WriteLine("Имя: " + personalName);
+            }
+            else if (elems[kkk].text.Contains("+"))
+            {
+                phoneNumber = elems[kkk].text;
+                Console.WriteLine("Телефонный номер: " + phoneNumber);
+            }
+            else if (elems[kkk].text.Contains("@") && elems[kkk].styleSpan == "font-family:Arial; font-size:9pt; text-decoration:underline; color:#000000")
+            {
+                string text = elems[kkk].text.Split(' ')[0];
+                mail = text;
+                Console.WriteLine("Почта: " + mail);
+            }
+            else if (elems[kkk].text.Contains("Мужчина, ") || elems[kkk].text.Contains("Женщина, "))
+            {
+                string[] text = elems[kkk].text.Split(", ");
+                sex = text[0];
+                age = text[1];
+                birthday = text[2].Replace("родился ", "").Replace("родилась ", "");
+                Console.WriteLine("Пол: " + sex);
+                Console.WriteLine("Возраст: " + age);
+                Console.WriteLine("Дата рождения: " + birthday);
+            }
+            else if (elems[kkk].text.Contains("Мужчина") || elems[kkk].text.Contains("Женщина"))
+            {
+                sex = elems[kkk].text;
+                Console.WriteLine("Пол: " + sex);
+            }
+            else if (elems[kkk].text.Contains("Проживает"))
+            {
+                city = elems[kkk].text.Replace("Проживает: ", "");
+                Console.WriteLine("Проживает: " + city);
+            }
+            else if (elems[kkk].text.Contains("Гражданство"))
+            {
+                string[] text = elems[kkk].text.Replace("Гражданство: ", "").Split(", ");
+                citizenship = text[0];
+                Console.WriteLine("Гражданство: " + citizenship);
+            }
+           
+            //Console.WriteLine(elems[kkk].text);
+            kkk++;
+        }
+        String[] words;
+        words = personalName.Split(new char[] { ' ' });
+        string a;
+        if (words.Length == 3)
+        {
+            a = words[2];
+        }
+        else
+        {
+            a = " ";
+        }
+        age = age.Trim(new char[] { 'г', 'о', 'д', ' ' }); // результат "ello worl"
+
+        bool result = int.TryParse(age, out var vozr);
+        birthday = birthday.Replace(" ", "");
+        id_pers_inf = personal_information_poisk(words[0], words[1], a, vozr, sex, mail, phoneNumber, birthday, citizenship, city, con);
+        if (id_pers_inf == 0)
+        {
+            personal_information(words[0], words[1], a, vozr, sex, mail, phoneNumber, birthday, citizenship, city, con);
+            id_pers_inf = personal_information_poisk(words[0], words[1], a, vozr, sex, mail, phoneNumber, birthday, citizenship, city, con);
+        }
+
+
+        Console.WriteLine();
+
+        for (int i = 0; i < elems.Count; i++)
+        {
+            switch (elems[i].text)
+            {
+                case "Желаемая должность и зарплата":
+                    {
+                        i++;
+                        position = elems[i].text;
+                        i++;
+                        if (elems[i].text == "Специализации:")
+                        {
+                            i++;
+                            while (i < elems.Count && !elems[i].header && !elems[i].text.Contains("Занятость: ") && !elems[i].text.Contains("График работы: "))
+                            {
+                                string text = elems[i].text.Replace("—  ", "");//ТУТ УБРАЛ "-"
+                                specs.Add(text);
+                                i++;
+                            }
+
+                            if (elems[i].text.Contains("Занятость: "))
+                            {
+                                busyness = elems[i].text.Replace("Занятость: ", "");
+                                i++;
+                            }
+
+                            if (elems[i].text.Contains("График работы: "))
+                            {
+                                workSchedule = elems[i].text.Replace("График работы: ", "");
+                                i++;
+                            }
+
+                            Console.WriteLine("ЖЕЛАЕМАЯ ДОЛЖНОСТЬ И ЗАРПЛАТА");
+                            Console.WriteLine("Должность: " + position);
+                            id_job = jobtitle_poisk(position, con);
+                            if (id_job == 0)
+                            {
+                                job_title(position, con);
+                                id_job = jobtitle_poisk(position, con);
+                            }
+                            Console.WriteLine("Специализации:");
+                            foreach (var spec in specs)
+                            {
+                                Console.WriteLine("    " + spec);
+                            }
+                            Console.WriteLine("Занятость: " + busyness);
+                            id_emp = employment_poisk(busyness, con);
+                            if (id_emp == 0)
+                            {
+                                Employment(busyness, con);
+                                id_emp = employment_poisk(busyness, con);
+                            }
+                            Console.WriteLine("График работы: " + workSchedule);
+                            id_sch = schedule_poisk(workSchedule, con);
+                            if (id_sch == 0)
+                            {
+                                schedule(workSchedule, con);
+                                id_sch = schedule_poisk(workSchedule, con);
+                            }
+                            Console.WriteLine("Зарплата: " + salary);
+
+                        }
+                        break;
+                    }
+                case "Опыт работы":
+                    {
+                        i++;
+                        while (!elems[i].header)
+                        {
+                            string when = elems[i].text;
+                            i++;
+                            string where = "";
+                            string who = "";
+                            while (i < elems.Count && !elems[i].header && elems[i].styleSpan != "font-family:Arial; font-size:8pt; color:#707070")
+                            {
+                                if (elems[i].styleSpan == "font-family:Arial; font-size:12pt; font-weight:bold")
+                                    where = elems[i].text;
+                                if (elems[i].styleSpan == "font-family:Arial; font-size:12pt")
+                                    who = elems[i].text;
+                                i++;
+
+                            }
+                            
+
+                        }
+                        Console.WriteLine("\nОПЫТ РАБОТЫ:");
+                        foreach (var job in jobs)
+                        {
+                            Console.WriteLine("    " + job.GetInfo());
+                        }
+                        i--;
+                        break;
+                    }
+                case "Образование":
+                    {
+                        i++;
+                        while (i < elems.Count && !elems[i].header)
+                        {
+                            if (elems[i].styleSpan == "font-family:Arial; font-size:11pt")
+                            {
+                                i++;
+                                continue;
+                            }
+
+                            string when = elems[i].text;
+                            i++;
+                            string where = "";
+                            string who = "";
+                            while (i < elems.Count && !elems[i].header && elems[i].styleSpan != "font-family:Arial; font-size:8pt; color:#707070")
+                            {
+                                if (elems[i].styleSpan == "font-family:Arial; font-size:12pt; font-weight:bold")
+                                    where = elems[i].text;
+                                if (elems[i].styleSpan == "font-family:Arial; font-size:9pt")
+                                    who = elems[i].text;
+                                i++;
+
+                            }
+
+
+                            educations.Add(new Education(when, where, who));
+
+                        }
+                        Console.WriteLine("\nОБРАЗОВАНИЕ:");
+                        foreach (var ed in educations)
+                        {
+                            Console.WriteLine("    " + ed.GetInfo());
+                            string d = ed.GetInfo();
+                            String[] stroka = d.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                            id_edu = education_poisk(stroka[0], " ", stroka[1], stroka[2], con);//внесение информации об образование
+                            if (id_edu == 0)
+                            {
+                                educationn(stroka[0], " ", stroka[1], stroka[2], con); //внесение информации об образование
+                                id_edu = education_poisk(stroka[0], " ", stroka[1], stroka[2], con);//внесение информации об образование
+                            }
+                            infedu(id_pers_inf, id_edu, con);
+                        }
+                        i--;
+                        break;
+                    }
+                case "Повышение квалификации, курсы":
+                    {
+                        i++;
+                        while (i < elems.Count && !elems[i].header)
+                        {
+
+                            string when = elems[i].text;
+                            i++;
+                            string where = "";
+                            string who = "";
+                            while (i < elems.Count && !elems[i].header && elems[i].styleSpan != "font-family:Arial; font-size:8pt; color:#707070")
+                            {
+                                if (elems[i].styleSpan == "font-family:Arial; font-size:12pt; font-weight:bold")
+                                    where = elems[i].text;
+                                if (elems[i].styleSpan == "font-family:Arial; font-size:9pt")
+                                    who = elems[i].text;
+                                i++;
+
+                            }
+                            qualifications.Add(new Qualification(when, where, who));
+
+                        }
+                        Console.WriteLine("\nПОВЫШЕНИЕ КВАЛИФИКАЦИИ, КУРСЫ:");
+                        foreach (var qa in qualifications)
+                        {
+                            Console.WriteLine("    " + qa.GetInfo());
+                            string d = qa.GetInfo();
+                            String[] stroka = d.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                            id_edu = education_poisk(stroka[0], "курсы", stroka[2], stroka[1], con);
+                            if (id_edu == 0)
+                            {
+                                educationn(stroka[0], "курсы", stroka[2], stroka[1], con); //внесение информации об образование
+                                id_edu = education_poisk(stroka[0], "курсы", stroka[2], stroka[1], con);
+                            }
+                        }
+                        i--;
+                        Console.WriteLine();
+                        break;
+                    }
+                case "Ключевые навыки":
+                    {
+                        i++;
+                        while (i < elems.Count && !elems[i].header)
+                        {
+                            if (elems[i].text == "Знание языков")
+                            {
+                                i++;
+                                while (i < elems.Count && !elems[i].header && elems[i].styleSpan != "font-family:Arial; font-size:8pt; color:#707070")
+                                {
+                                    languages.Add(elems[i].text);
+                                    i++;
+                                }
+                            }
+                            if (elems[i].text == "Навыки")
+                            {
+                                i++;
+                                while (i < elems.Count && !elems[i].header && elems[i].styleSpan != "font-family:Arial; font-size:8pt; color:#707070")
+                                {
+                                    skills.Add(elems[i].text);
+                                    id_skil = skills_poisk(elems[i].text, con);
+                                    if (id_skil == 0)
+                                    {
+                                        skilll(elems[i].text, con);
+                                        id_skil = skills_poisk(elems[i].text, con);
+                                    }
+
+                                    infskill(id_pers_inf, id_skil, con);
+                                    i++;
+                                }
+                            }
+                        }
+                        Console.WriteLine("КЛЮЧЕВЫЕ НАВЫКИ");
+                        Console.WriteLine("Языки:");
+                        foreach (var la in languages)
+                        {
+                            Console.WriteLine("    " + la);
+                        }
+                        Console.WriteLine("Навыки");
+                        foreach (var sk in skills)
+                        {
+                            Console.WriteLine("    " + sk);
+                        }
+                        i--;
+                        break;
+                    }
+                case "Опыт вождения":
+                    {
+                        i++;
+                        //driverExp = elems[i].text;
+                        //Console.WriteLine("\nОПЫТ ВОЖДЕНИЯ:\n"+driverExp);
+                        break;
+                    }
+                case "Дополнительная информация":
+                    {
+                        i++;
+
+                        while (i < elems.Count && !elems[i].header)
+                        {
+                            if (elems[i].styleSpan == "font-family:Arial; font-size:9pt")
+                            {
+                                aboutMe += elems[i].text;
+                            }
+                            i++;
+                        }
+                        Console.WriteLine("\nДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ:\n    Обо мне: " + aboutMe);
+                        
+                        string substring = "зарплата не указана";
+                        int indexOfSubstring = salary.IndexOf(substring);
+                        if (indexOfSubstring == -1)
+                        {
+                            words = salary.Split(new char[] { '₽', 'р', 'у', 'б', '.' });
+
+                            salary = words[0].Trim(new char[] { ' ', ' ', });
+                            salary = salary.Replace(" ", "");
+
+                            int z = int.Parse(salary);
+                        }
+                        else
+                        {
+                            salary = "0";
+                        }
+                        id_res = resume_poisk(htmlName, workExpTime, aboutMe, int.Parse(salary), con);
+                        if (id_res == 0)
+                        {
+                            resume(id_pers_inf, htmlName, workExpTime, aboutMe, int.Parse(salary), con);
+                        }
+                        id_res = resume_poisk(htmlName, workExpTime, aboutMe, int.Parse(salary), con);
+                        resjob(id_res, id_job, con);
+                        resemp(id_res, id_emp, con);
+                        ressch(id_res, id_sch, con);
+                        Console.WriteLine();
+
+                        foreach (var job in jobs)
+                        {
+                            Console.WriteLine("    " + job.GetInfo());
+                           
+                            words = job.GetInfo().Split(new char[] { '/' });
+                            
+                            id_lw = last_work_poisk(words[0], words[1], words[2],con);
+                            if (id_lw == 0)
+                            {
+                                last_work(id_res, words[0], words[1], words[2], con);
+                                id_lw = last_work_poisk(words[0], words[1], words[2], con);
+                            }
+
+                        }
+
+                        break;
+                    }
+                default:
+                    break;
+            }
+        }
+    }
+
+    static void DocToHTML(string docName)
+    {
+
+        Console.WriteLine("\n=====================================Загрузка в html....\n");
+        Document doc = new Document("../../../"+docName+".doc");
+
+        // Enable roundtrip information
+        HtmlSaveOptions options = new HtmlSaveOptions();
+        options.ExportRoundtripInformation = true;
+
+        // Save as HTML
+        doc.Save("../../../" + docName + ".html", options);
     }
     static int last_work_poisk(string date_duration, string company, string job_title, NpgsqlConnection con)
     {
@@ -842,19 +1362,7 @@ public class Program
             return 0;
         }
     }
-    static void DocToHTML(string docName)
-    {
-
-        Console.WriteLine("\n=====================================Загрузка в html....\n");
-        Document doc = new Document("../../../" + docName + ".doc");
-
-        // Enable roundtrip information
-        HtmlSaveOptions options = new HtmlSaveOptions();
-        options.ExportRoundtripInformation = true;
-
-        // Save as HTML
-        doc.Save("../../../" + docName + ".html", options);
-    }
+   
     static void infskill(int id_pers_inf, int id_skill, NpgsqlConnection con)
     {
 
@@ -916,11 +1424,15 @@ public class Program
         //нужно добавить удаление html страницы, если мы конвертировали из дока.
         //если поменять док файл руками, то он после конвертации не будет парситься
 
-        ParseResume("https://perm.hh.ru/resume/96fe30a1ff0b77ed4e0039ed1f49353247526a");// страница резюме влада
-        ParseSearched(); // просматривает все резюме на первой странице поиска. пока что ограничил до 5 резюме.                                                            //ParseSearched(); // просматривает все резюме на первой странице поиска. пока что ограничил до 5 резюме.
+        DocToHTML("vlad3");
+        ParseAfterDoc("vlad3");
+
+        
 
         //Тут будет вызов парсинга с сайта и с файлов
 
     }
 }
+
+
 
